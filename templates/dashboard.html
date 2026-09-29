@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Health Monitor – Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet.js (Map) -->
+  <link  rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+<!-- ========== NAVBAR ========== -->
+<nav class="navbar">
+  <div class="nav-brand">
+    💧 <span>Smart Community Health Monitor</span>
+  </div>
+  <div class="nav-links">
+    <a href="/dashboard" class="active">📊 Dashboard</a>
+    <a href="/form">📋 Health Report</a>
+  </div>
+</nav>
+
+<!-- ========== ALERT BANNER ========== -->
+<div id="alertBanner" class="alert-banner hidden">
+  ⚠️ HIGH RISK DETECTED — Possible Water-Borne Disease Outbreak!
+  <button onclick="dismissAlert()">✕</button>
+</div>
+
+<!-- ========== MAIN CONTAINER ========== -->
+<div class="container">
+
+  <!-- PAGE TITLE -->
+  <div class="page-header">
+    <div>
+      <h1>Community Health Dashboard</h1>
+      <p class="subtitle">Rural Northeast India — Real-time Water Quality & Disease Surveillance</p>
+    </div>
+    <div class="header-actions">
+      <span id="lastUpdated" class="last-updated">Last updated: —</span>
+      <div class="auto-refresh">
+        <div class="pulse-dot"></div>
+        Auto-refresh: 5s
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SUMMARY CARDS ── -->
+  <div class="stats-grid">
+    <div class="stat-card" id="cardPH">
+      <div class="stat-icon">🧪</div>
+      <div class="stat-info">
+        <span class="stat-label">Water pH</span>
+        <span class="stat-value" id="statPH">—</span>
+        <span class="stat-sub">Latest reading</span>
+      </div>
+    </div>
+    <div class="stat-card" id="cardTurb">
+      <div class="stat-icon">🌊</div>
+      <div class="stat-info">
+        <span class="stat-label">Turbidity (NTU)</span>
+        <span class="stat-value" id="statTurb">—</span>
+        <span class="stat-sub">Latest reading</span>
+      </div>
+    </div>
+    <div class="stat-card" id="cardTemp">
+      <div class="stat-icon">🌡️</div>
+      <div class="stat-info">
+        <span class="stat-label">Water Temp</span>
+        <span class="stat-value" id="statTemp">—</span>
+        <span class="stat-sub">°C</span>
+      </div>
+    </div>
+    <div class="stat-card" id="cardPatients">
+      <div class="stat-icon">🏥</div>
+      <div class="stat-info">
+        <span class="stat-label">Patients Reported</span>
+        <span class="stat-value" id="statPatients">—</span>
+        <span class="stat-sub" id="statVillage">Latest village</span>
+      </div>
+    </div>
+    <div class="stat-card" id="cardTotal">
+      <div class="stat-icon">📡</div>
+      <div class="stat-info">
+        <span class="stat-label">Sensor Readings</span>
+        <span class="stat-value" id="statTotalWater">—</span>
+        <span class="stat-sub" id="statTotalReports">— health reports</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RISK STATUS + CONTROLS ── -->
+  <div class="row-2col">
+
+    <!-- Risk Status Card -->
+    <div class="card risk-card" id="riskCard">
+      <h3>🔍 Risk Assessment</h3>
+      <div class="risk-display">
+        <div id="riskBadge" class="risk-badge badge-unknown">—</div>
+      </div>
+      <div class="risk-detail">
+        <div class="risk-row">
+          <span>Rule-Based:</span>
+          <span id="ruleRisk" class="badge-sm">—</span>
+        </div>
+        <div class="risk-row">
+          <span>ML Model (Decision Tree):</span>
+          <span id="mlRisk" class="badge-sm">—</span>
+        </div>
+        <div class="risk-row">
+          <span>Turbidity:</span>
+          <span id="riskTurb">—</span>
+        </div>
+        <div class="risk-row">
+          <span>Patients:</span>
+          <span id="riskPatients">—</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="checkRisk()">🔎 Check Risk Now</button>
+    </div>
+
+    <!-- IoT Sensor Controls -->
+    <div class="card">
+      <h3>📡 IoT Sensor Controls</h3>
+      <p class="card-desc">Simulate water quality readings from IoT sensors deployed in the field.</p>
+      <button class="btn btn-success" onclick="addWaterSimulated()">
+        🌊 Simulate Sensor Reading
+      </button>
+
+      <hr class="divider"/>
+
+      <h4>Manual Entry</h4>
+      <div class="form-inline">
+        <div class="form-group">
+          <label>pH</label>
+          <input type="number" id="mph" step="0.1" min="0" max="14" placeholder="e.g. 7.2">
+        </div>
+        <div class="form-group">
+          <label>Turbidity (NTU)</label>
+          <input type="number" id="mturb" step="0.1" min="0" placeholder="e.g. 5.0">
+        </div>
+        <div class="form-group">
+          <label>Temp (°C)</label>
+          <input type="number" id="mtemp" step="0.1" min="0" placeholder="e.g. 27">
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="addWaterManual()">➕ Add Manual Reading</button>
+      <div id="sensorMsg" class="msg-box hidden"></div>
+    </div>
+
+  </div>
+
+  <!-- ── CHARTS ── -->
+  <div class="row-2col">
+    <div class="card">
+      <h3>📈 Water Turbidity Over Time</h3>
+      <p class="card-desc">Line chart showing turbidity levels (NTU). Threshold: 10 NTU</p>
+      <canvas id="turbidityChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <h3>📊 pH & Temperature Trends</h3>
+      <p class="card-desc">Dual-axis line chart for pH and temperature readings</p>
+      <canvas id="phTempChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🏥 Patients Reported by Village</h3>
+    <p class="card-desc">Bar chart showing number of sick patients per community health report</p>
+    <canvas id="patientChart" height="120"></canvas>
+  </div>
+
+  <!-- ── LEAFLET MAP ── -->
+  <div class="card">
+    <h3>🗺️ Village Outbreak Map — Northeast India</h3>
+    <p class="card-desc">
+      Color-coded markers: 🔴 High patient count &nbsp;|&nbsp; 🟡 Moderate &nbsp;|&nbsp; 🟢 Low
+    </p>
+    <div id="map" style="height: 400px; border-radius: 10px;"></div>
+  </div>
+
+  <!-- ── DATA TABLES ── -->
+  <div class="row-2col">
+    <div class="card">
+      <h3>💧 Recent Water Readings</h3>
+      <div class="table-wrap">
+        <table id="waterTable">
+          <thead>
+            <tr><th>#</th><th>pH</th><th>Turbidity</th><th>Temp</th><th>Date</th></tr>
+          </thead>
+          <tbody id="waterTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🏥 Recent Health Reports</h3>
+      <div class="table-wrap">
+        <table id="healthTable">
+          <thead>
+            <tr><th>Village</th><th>Patients</th><th>Fever</th><th>Diarrhea</th><th>Vomiting</th></tr>
+          </thead>
+          <tbody id="healthTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ========== POPUP MODAL ALERT ========== -->
+<div id="riskModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-icon">🚨</div>
+    <h2>HIGH RISK ALERT!</h2>
+    <p>Water-borne disease outbreak conditions detected in the community.</p>
+    <ul>
+      <li>Water turbidity exceeds safe threshold</li>
+      <li>High number of patients reported</li>
+      <li>Immediate action required</li>
+    </ul>
+    <button class="btn btn-danger" onclick="closeModal()">Acknowledge & Close</button>
+  </div>
+</div>
+
+<!-- ========== SCRIPTS ========== -->
+<script src="/static/script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Health Report – Smart Health Monitor</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-brand">
+    💧 <span>Smart Community Health Monitor</span>
+  </div>
+  <div class="nav-links">
+    <a href="/dashboard">📊 Dashboard</a>
+    <a href="/form" class="active">📋 Health Report</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <div>
+      <h1>📋 Community Health Report</h1>
+      <p class="subtitle">Submit disease symptoms observed in your village</p>
+    </div>
+  </div>
+
+  <div class="form-wrapper">
+
+    <!-- INFO BOX -->
+    <div class="info-box">
+      <strong>ℹ️ Instructions:</strong> Fill in accurate information about health symptoms
+      observed in your community. This data is used for early warning of water-borne diseases
+      like cholera, typhoid, and dysentery common in rural Northeast India.
+    </div>
+
+    <!-- HEALTH FORM -->
+    <div class="card form-card">
+      <h2>🏥 Patient Report Form</h2>
+
+      <div id="successMsg" class="success-msg hidden">
+        ✅ Report submitted successfully! Redirecting to dashboard...
+      </div>
+      <div id="errorMsg" class="error-msg hidden"></div>
+
+      <!-- Village Selection -->
+      <div class="form-group">
+        <label for="village">🏘️ Village / Location *</label>
+        <select id="village" required>
+          <option value="">-- Select Village --</option>
+          <option>Majuli</option>
+          <option>Sibsagar</option>
+          <option>Dibrugarh</option>
+          <option>Tezpur</option>
+          <option>Jorhat</option>
+          <option>Nagaon</option>
+          <option>Silchar</option>
+          <option>Imphal</option>
+          <option>Kohima</option>
+          <option>Agartala</option>
+          <option>Itanagar</option>
+          <option>Aizawl</option>
+          <option>Gangtok</option>
+          <option>Shillong</option>
+          <option>Bongaigaon</option>
+        </select>
+      </div>
+
+      <!-- Patient Count -->
+      <div class="form-group">
+        <label for="patients">👥 Number of Affected Patients *</label>
+        <input type="number" id="patients" min="1" max="500" placeholder="Enter number of patients" required/>
+        <small>Total patients showing symptoms in your village</small>
+      </div>
+
+      <!-- Symptoms Checkboxes -->
+      <div class="form-group">
+        <label>🤒 Symptoms Observed (check all that apply)</label>
+        <div class="symptom-grid">
+          <label class="symptom-card">
+            <input type="checkbox" id="fever"/>
+            <div class="symptom-icon">🌡️</div>
+            <div class="symptom-label">Fever</div>
+          </label>
+          <label class="symptom-card">
+            <input type="checkbox" id="diarrhea"/>
+            <div class="symptom-icon">🤢</div>
+            <div class="symptom-label">Diarrhea</div>
+          </label>
+          <label class="symptom-card">
+            <input type="checkbox" id="vomiting"/>
+            <div class="symptom-icon">🤮</div>
+            <div class="symptom-label">Vomiting</div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button class="btn btn-primary btn-full" onclick="submitReport()">
+        📤 Submit Health Report
+      </button>
+
+    </div>
+
+    <!-- DISEASE INFO CARD -->
+    <div class="card info-card">
+      <h3>📖 Water-Borne Diseases in Northeast India</h3>
+      <div class="disease-list">
+        <div class="disease-item">
+          <span class="disease-icon">⚠️</span>
+          <div>
+            <strong>Cholera</strong>
+            <p>Caused by contaminated water. Symptoms: severe diarrhea, vomiting, dehydration.</p>
+          </div>
+        </div>
+        <div class="disease-item">
+          <span class="disease-icon">⚠️</span>
+          <div>
+            <strong>Typhoid</strong>
+            <p>Spread through contaminated water/food. Symptoms: high fever, weakness, stomach pain.</p>
+          </div>
+        </div>
+        <div class="disease-item">
+          <span class="disease-icon">⚠️</span>
+          <div>
+            <strong>Dysentery</strong>
+            <p>Intestinal infection from dirty water. Symptoms: diarrhea with blood, fever, cramps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function submitReport() {
+  // Validate inputs
+  const village  = document.getElementById("village").value;
+  const patients = document.getElementById("patients").value;
+
+  if (!village) {
+    showError("Please select a village.");
+    return;
+  }
+  if (!patients || patients < 1) {
+    showError("Please enter a valid number of patients.");
+    return;
+  }
+
+  const payload = {
+    village:  village,
+    fever:    document.getElementById("fever").checked    ? 1 : 0,
+    diarrhea: document.getElementById("diarrhea").checked ? 1 : 0,
+    vomiting: document.getElementById("vomiting").checked ? 1 : 0,
+    patients: parseInt(patients)
+  };
+
+  try {
+    const res  = await fetch("/add_health", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    // Show success message
+    document.getElementById("successMsg").classList.remove("hidden");
+    document.getElementById("errorMsg").classList.add("hidden");
+
+    // Redirect after 2 seconds
+    setTimeout(() => { window.location.href = "/dashboard"; }, 2000);
+
+  } catch (err) {
+    showError("Failed to submit report. Please try again.");
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById("errorMsg");
+  el.textContent = "❌ " + msg;
+  el.classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
